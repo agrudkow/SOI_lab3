@@ -1,13 +1,15 @@
-OBJC = main.0 queue.o sem.o
+# Usage:
+# make        # compile all binary
+# make clean  # remove ALL binaries and objects
 
-main.o: main.c queue.h sem.h
-				cc -c main.c
+CC = gcc                       # compiler to use
+OBJS = main.0 queue.o sem.o
 
-gueue.o: queue.c sem.h
-				cc -c queue.c
+edit: $(OBJS)
+				$(CC) -o edit $(OBJS)
 
-sem.o: sem.c
-				cc -c sem.c
+main.o: queue.h sem.h
 
+.PHONY = clean
 clean:
-				rm edit $(OBJC)
+				rm edit $(OBJS)
