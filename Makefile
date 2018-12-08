@@ -3,12 +3,13 @@
 # make clean  # remove ALL binaries and objects
 
 CC = gcc                       # compiler to use
-OBJS = main.0 queue.o sem.o
+OBJS = main.o queue.o #sem.o
 
 edit: $(OBJS)
 				$(CC) -o edit $(OBJS)
 
-main.o: queue.h sem.h
+main.o: queue.h #sem.h
+queue.o: queue.h
 
 .PHONY = clean
 clean:
