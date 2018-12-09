@@ -40,13 +40,13 @@ struct Queue* shm_init(key_t key){
   struct Queue *queue;
   shm_id = shmget(key, sizeof(struct Queue), 0666 | IPC_CREAT);
   if (shm_id == -1) {
-    perror("shm_init(%d): shmget error\n", key);
+    perror("shm_init: shmget error\n");
     exit(1);
   }
 
   queue = (struct Queue*)shmat(shm_id, NULL, 0);
   if (queue == NULL) {
-    perror("shm_init(%d): shmat error\n", key);
+    perror("shm_init: shmat error\n");
     exit(1);
   }
 
@@ -59,12 +59,12 @@ void shm_clean(key_t key) {
   struct shmid_ds *shm_desc;
   shm_id = shmget(key, sizeof(struct Queue), 0666 | IPC_CREAT);
   if (shm_id == -1) {
-    perror("shm_clean(%d): shmget error\n", key);
+    perror("shm_clean: shmget error\n");
     exit(1);
   }
 
   if (shmctl(shm_id, IPC_RMID, shm_desc) == -1) {
-    perror("shm_clean(%d): shmctl error\n", key);
+    perror("shm_clean: shmctl error\n");
     exit(1);
   }
 }

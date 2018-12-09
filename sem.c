@@ -1,7 +1,8 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include "sem.h"
 //Get id of given semaphore
-int sem_get(key_t key) {
+int sem_id(key_t key) {
   int sem_id;
 
   sem_id = semget(key, 1, 0666 | IPC_CREAT);
@@ -15,13 +16,13 @@ int sem_get(key_t key) {
 //Initialize semaphore with given value
 void sem_init(key_t key, int semnum, int value) {
   if (semctl(sem_id(key), semnum, SETVAL, value) == -1) {
-    perror("sem_init: (%d)semctl error\n", semnum);
+    perror("sem_init: semctl error\n");
     exit(1);
   }
 }
 //Destroy all semaphores from a set pointed with key
 void sem_destroy_all(key_t key) {
-  if (semctl(sem_id(key), IPC_RMID, value) == -1) {
+  if (semctl(sem_id(key), 0, IPC_RMID) == -1) {
     perror("sem_destroy_all: semctl error\n");
     exit(1);
   }
@@ -34,8 +35,8 @@ void p (key_t key, int semnum) {
   sb.sem_op = -1;
   sb.sem_flg = 0;
 
-  if (semop(sem_get(key), $sb, 1) == -1) {
-    perror("p(%d): semop error\n", semnum);
+  if (semop(sem_id(key), &sb, 1) == -1) {
+    perror("p: semop error\n");
     exit(1);
   }
 }
@@ -47,8 +48,8 @@ void v (key_t key, int semnum) {
   sb.sem_op = 1;
   sb.sem_flg = 0;
 
-  if (semop(sem_get(key), $sb, 1) == -1) {
-    perror("p(%d): semop error\n", semnum);
+  if (semop(sem_id(key), &sb, 1) == -1) {
+    perror("v: semop error\n");
     exit(1);
   }
 }
@@ -56,9 +57,9 @@ void v (key_t key, int semnum) {
 int sem_get_value(key_t key, int semnum) {
   int value;
 
-  value = semctl(sem_get(key), sem_num, GETVAL);
+  value = semctl(sem_id(key), semnum, GETVAL);
   if (value == -1) {
-    perror("sem_get_value(%d): semctl error\n", semnum);
+    perror("sem_get_value: semctl error\n");
     exit(1);
   }
 

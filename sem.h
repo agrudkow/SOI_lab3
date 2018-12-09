@@ -6,7 +6,7 @@
 #include <sys/sem.h>
 #include <sys/ipc.h>
 
-int sem_get(key_t key);
+int sem_id(key_t key);
 void sem_init(key_t key, int semnum, int value);
 void sem_destroy_all(key_t key);
 void p(key_t key, int semnum);
