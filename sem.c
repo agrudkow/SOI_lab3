@@ -30,7 +30,7 @@ void sem_destroy_all(key_t key) {
   }
 }
 //Decrease value of semaphore
-void p (key_t key, int semnum) {
+void down (key_t key, int semnum) {
   struct sembuf sb;
   int id = sem_id(key);
 
@@ -44,7 +44,7 @@ void p (key_t key, int semnum) {
   }
 }
 //Increase value of semaphore
-void v (key_t key, int semnum) {
+void up (key_t key, int semnum) {
   struct sembuf sb;
   int id = sem_id(key);
 
