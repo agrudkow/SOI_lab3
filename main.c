@@ -13,7 +13,8 @@
 
 enum { MUTEX_A, MUTEX_B, MUTEX_C, MUTEX_D,
    SEM_EMPTY_A, SEM_EMPTY_B, SEM_EMPTY_CD,
-   SEM_FULL_C,SEM_FULL_D, SEM_FULL_AB};
+   SEM_FULL_C,SEM_FULL_D, SEM_FULL_AB,
+   SEM_PRIORITY_C, SEM_PRIORITY_D};
 
 void test() {
   /*
@@ -69,15 +70,61 @@ void shm_clean(key_t key) {
   }
 }
 
-int main(int argc, char const *argv[]) {
-  struct Queue *queue_A;
-
+void queue_init() {
+  struct Queue *queue_A, *queue_B, *queue_C, *queue_D;
 
   queue_A = shm_init(SHM_KEY_A);
   init(queue_A, Q_SIZE);
+  shmdt(queue_A);
+  queue_B = shm_init(SHM_KEY_B);
+  init(queue_B, Q_SIZE);
+  shmdt(queue_B);
+  queue_C = shm_init(SHM_KEY_C);
+  init(queue_C, Q_SIZE);
+  shmdt(queue_C);
+  queue_D = shm_init(SHM_KEY_D);
+  init(queue_D, Q_SIZE);
+  shmdt(queue_D);
 
+  sem_init(SEM_KEY, MUTEX_A, 1);
+  sem_init(SEM_KEY, MUTEX_B, 1);
+  sem_init(SEM_KEY, MUTEX_C, 1);
+  sem_init(SEM_KEY, MUTEX_D, 1);
+  sem_init(SEM_KEY, SEM_EMPTY_A, 0);
+  sem_init(SEM_KEY, SEM_EMPTY_B, 0);
+  sem_init(SEM_KEY, SEM_EMPTY_CD, 0);
+  sem_init(SEM_KEY, SEM_FULL_C, Q_SIZE);
+  sem_init(SEM_KEY, SEM_FULL_D, Q_SIZE);
+  sem_init(SEM_KEY, SEM_FULL_AB, Q_SIZE);
+  sem_init(SEM_KEY, SEM_PRIORITY_C, 0);
+  sem_init(SEM_KEY, SEM_PRIORITY_D, 0);
+}
+
+void clean_up() {
+  sem_destroy_all(SEM_KEY);
 
   shm_clean(SHM_KEY_A);
+  shm_clean(SHM_KEY_B);
+  shm_clean(SHM_KEY_C);
+  shm_clean(SHM_KEY_D);
+}
 
+void process_U0(key_t key) {
+
+}
+
+void process_U1(key_t key_in, key_t key_out) {
+
+}
+
+void process_U2(key_t key) {
+
+}
+
+
+int main(int argc, char const *argv[]) {
+  queue_init();
+
+  clean_up();
   return 0;
 }

@@ -6,6 +6,8 @@
 #include <sys/sem.h>
 #include <sys/ipc.h>
 
+#define NUM_OF_SEMS 12
+
 int sem_id(key_t key);
 void sem_init(key_t key, int semnum, int value);
 void sem_destroy_all(key_t key);
