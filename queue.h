@@ -12,7 +12,7 @@ struct Queue {
   struct Applicant buffor[Q_SIZE];
   // back points on a place ready to be filled, except the feckt when queue is empty
   // front points on a first element in a queue
-  int front, back, size;
+  int front, back, size, actual_size;
 };
 
 void printq(struct Queue *queue);

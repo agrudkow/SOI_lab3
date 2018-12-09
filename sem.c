@@ -5,7 +5,7 @@
 int sem_id(key_t key) {
   int sem_id;
 
-  sem_id = semget(key, NUM_OF_SEMS + 1, 0600 | IPC_CREAT);
+  sem_id = semget(key, NUM_OF_SEMS, 0600 | IPC_CREAT);
   if (sem_id == -1) {
     perror("semget error\n");
     exit(1);
@@ -34,12 +34,12 @@ void down (key_t key, int semnum) {
   struct sembuf sb;
   int id = sem_id(key);
 
-  sb.sem_num = key;
+  sb.sem_num = semnum;
   sb.sem_op = -1;
   sb.sem_flg = 0;
 
   if (semop(id, &sb, 1) == -1) {
-    perror("p: semop error\n");
+    perror("down: semop error\n");
     exit(1);
   }
 }
@@ -48,12 +48,12 @@ void up (key_t key, int semnum) {
   struct sembuf sb;
   int id = sem_id(key);
 
-  sb.sem_num = key;
+  sb.sem_num = semnum;
   sb.sem_op = 1;
   sb.sem_flg = 0;
 
   if (semop(id, &sb, 1) == -1) {
-    perror("v: semop error\n");
+    perror("up: semop error\n");
     exit(1);
   }
 }

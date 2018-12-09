@@ -6,7 +6,7 @@
 #include <sys/sem.h>
 #include <sys/ipc.h>
 
-#define NUM_OF_SEMS 12
+#define NUM_OF_SEMS 13
 
 int sem_id(key_t key);
 void sem_init(key_t key, int semnum, int value);
