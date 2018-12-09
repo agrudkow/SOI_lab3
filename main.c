@@ -2,14 +2,18 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/shm.h>
-#include <sys/ipc.h>
-#include <sys/sem.h>
 #include "queue.h"
+#include "sem.h"
 
-#define SHM_KEY_A 11111
-#define SHM_KEY_B 11112
-#define SHM_KEY_C 11113
-#define SHM_KEY_D 11114
+#define SHM_KEY_A   10001
+#define SHM_KEY_B   10002
+#define SHM_KEY_C   10003
+#define SHM_KEY_D   10004
+#define SEM_KEY     20001
+
+enum { MUTEX_A, MUTEX_B, MUTEX_C, MUTEX_D,
+   SEM_EMPTY_A, SEM_EMPTY_B, SEM_EMPTY_CD,
+   SEM_FULL_C,SEM_FULL_D, SEM_FULL_AB};
 
 void test() {
   /*
@@ -36,13 +40,13 @@ struct Queue* shm_init(key_t key){
   struct Queue *queue;
   shm_id = shmget(key, sizeof(struct Queue), 0666 | IPC_CREAT);
   if (shm_id == -1) {
-    perror("shmget error\n");
+    perror("shm_init(%d): shmget error\n", key);
     exit(1);
   }
 
   queue = (struct Queue*)shmat(shm_id, NULL, 0);
   if (queue == NULL) {
-    perror("shmat error\n");
+    perror("shm_init(%d): shmat error\n", key);
     exit(1);
   }
 
@@ -55,19 +59,17 @@ void shm_clean(key_t key) {
   struct shmid_ds *shm_desc;
   shm_id = shmget(key, sizeof(struct Queue), 0666 | IPC_CREAT);
   if (shm_id == -1) {
-    perror("shmget error\n");
+    perror("shm_clean(%d): shmget error\n", key);
     exit(1);
   }
 
   if (shmctl(shm_id, IPC_RMID, shm_desc) == -1) {
-    perror("shmat error\n");
+    perror("shm_clean(%d): shmctl error\n", key);
     exit(1);
   }
 }
 
-
 int main(int argc, char const *argv[]) {
-  struct Applicant tmp;
   struct Queue *queue_A;
 
 
