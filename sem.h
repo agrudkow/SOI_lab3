@@ -8,11 +8,12 @@
 
 #define NUM_OF_SEMS 13
 
-int sem_id(key_t key);
-void sem_init(key_t key, int semnum, int value);
-void sem_destroy_all(key_t key);
-void down(key_t key, int semnum);
-void up(key_t key, int semnum);
-int sem_get_value(key_t key, int semnum);
+
+int sem_id(int id);
+void sem_init(int id, int semnum, union semun sem_info);
+void sem_destroy_all(int id);
+void down(int semid, int semnum, struct sembuf sb);
+void up(int semid, int semnum, struct sembuf sb);
+int sem_get_value(int semid, int semnum);
 
 #endif

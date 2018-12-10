@@ -14,7 +14,7 @@ struct Queue {
   // front points on a first element in a queue
   int front, back, size, actual_size;
 };
-
+int mod_q(int a, int b);
 void printq(struct Queue *queue);
 void init(struct Queue *queue, int s);
 void push(struct Queue *queue, int id, int priority);

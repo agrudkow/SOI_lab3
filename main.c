@@ -1,16 +1,25 @@
 #include <stdio.h>
+#include <unistd.h>
 #include <stdlib.h>
 #include <time.h>
 #include <sys/types.h>
+#include <sys/sem.h>
+#include <sys/ipc.h>
 #include <sys/shm.h>
+#include <pthread.h>
 #include "queue.h"
-#include "sem.h"
 
 #define SHM_KEY_A   10001
 #define SHM_KEY_B   10002
 #define SHM_KEY_C   10003
 #define SHM_KEY_D   10004
 #define SEM_KEY     20001
+#define NUM_OF_SEMS 13
+
+pthread_t U0_thread, U1_1_thread, U1_2_thread, U2_thread;
+
+int semid;
+struct sembuf sb = {0, 0, 0};
 
 enum { MUTEX_A, MUTEX_B, MUTEX_C, MUTEX_D,
    SEM_FULL_A, SEM_FULL_B, SEM_EMPTY_AB,
@@ -20,34 +29,128 @@ enum { MUTEX_A, MUTEX_B, MUTEX_C, MUTEX_D,
 
 void test() {
   /*
-  printq(queue_A);
-  push_priority(queue_A, 12, 0);
-  printq(queue_A);
-  push_priority(queue_A, 13, 0);
-  printq(queue_A);
-  push_priority(queue_A, 14, 1);
-  printq(queue_A);
-  tmp = pop(queue_A);
-  printq(queue_A);
-  printf("%d %d\n", tmp.id, tmp.priority);
-  tmp = pop(queue_A);
-  printq(queue_A);
-  printf("%d %d\n", tmp.id, tmp.priority);
-
   struct Queue *queue_A;
   queue_A = shm_init(SHM_KEY_A);
-  push_priority(queue_A, 12, 0);
-  push_priority(queue_A, 13, 0);
-  push_priority(queue_A, 14, 0);
-  push_priority(queue_A, 15, 1);
+  printq(queue_A);
+  push_priority(queue_A, 1, 0);
+  printq(queue_A);
+//  pop(queue_A);
+  //printq(queue_A);
+  push_priority(queue_A, 2, 0);
+  printq(queue_A);
   pop(queue_A);
-  push_priority(queue_A, 16, 0);
-  push_priority(queue_A, 17, 1);
-  push_priority(queue_A, 18, 1);
+  printq(queue_A);
+  push_priority(queue_A, 3, 0);
+  printq(queue_A);
+  //pop(queue_A);
+  //printq(queue_A);
+  push_priority(queue_A, 4, 0);
+    printq(queue_A);
   pop(queue_A);
+  printq(queue_A);
+  push_priority(queue_A, 5, 0);
+  printq(queue_A);
+  //pop(queue_A);
+  //printq(queue_A);
+  push_priority(queue_A, 6, 1);
+    printq(queue_A);
+  //pop(queue_A);
+  //printq(queue_A);
+  push_priority(queue_A, 7, 1);
+  printq(queue_A);
+  //pop(queue_A);
+  printq(queue_A);
+  push_priority(queue_A, 8, 1);
+    printq(queue_A);
+//  pop(queue_A);
+  //printq(queue_A);
+  push_priority(queue_A, 9, 1);
+  printq(queue_A);
+  //pop(queue_A);
+  //printq(queue_A);
+  push_priority(queue_A, 10, 1);
+    printq(queue_A);
 
-  //shmdt(queue_A);
+
+  shmdt(queue_A);
+
+  //if (run_tasks())
+    //return 0;
+
+
+  pthread_create(&U0_thread, NULL, &process_U0, NULL);
+  pthread_create(&U1_1_thread, NULL, &process_U1_1, NULL);
+  pthread_create(&U1_2_thread, NULL, &process_U1_2, NULL);
+  pthread_create(&U2_thread, NULL, &process_U2, NULL);
+
+  pthread_join(U0_thread, NULL);
+  pthread_join(U1_1_thread, NULL);
+  pthread_join(U1_2_thread, NULL);
+  pthread_join(U2_thread, NULL);
   */
+}
+
+int sem_id(key_t key) {
+  int sem_id;
+
+  sem_id = semget(key, NUM_OF_SEMS, 0666 | IPC_CREAT);
+  if (sem_id == -1) {
+    perror("semget error\n");
+    exit(1);
+  }
+
+  return sem_id;
+}
+//Initialize semaphore with given value
+void sem_init(int semnum, int value) {
+  if (semctl(semid, semnum, SETVAL, value) == -1) {
+    perror("sem_init: semctl error\n");
+    exit(1);
+  }
+}
+//Destroy all semaphores from a set pointed with key
+void sem_destroy_all() {
+  if (semctl(semid, 0, IPC_RMID) == -1) {
+    perror("sem_destroy_all: semctl error\n");
+    exit(1);
+  }
+}
+//Decrease value of semaphore
+void down (int semnum, struct sembuf sem) {
+  sem.sem_num = semnum;
+  sem.sem_op = -1;
+  sem.sem_flg = 0;
+
+  if (semop(semid, &sem, 1) == -1) {
+    printf("Semnum: %d - ", semnum);
+    perror("down: semop error\n");
+    exit(1);
+  }
+}
+//Increase value of semaphore
+void up (int semnum, struct sembuf sem) {
+  sem.sem_num = semnum;
+  sem.sem_op = 1;
+  sem.sem_flg = 0;
+
+  if (semop(semid, &sem, 1) == -1) {
+    printf("Semnum: %d - ", semnum);
+    perror("up: semop error\n");
+    exit(1);
+  }
+}
+
+int sem_get_value(int semnum) {
+  int value;
+
+  value = semctl(semid, semnum, GETVAL);
+  if (value == -1) {
+    printf("Semnum: %d - ", semnum);
+    perror("sem_get_value: semctl error\n");
+    exit(1);
+  }
+
+  return value;
 }
 
 struct Queue* shm_init(key_t key){
@@ -71,7 +174,7 @@ struct Queue* shm_init(key_t key){
 void print_all() {
   struct Queue *queue;
 
-  down(SEM_KEY, MUTEX_PRINT);
+  down(MUTEX_PRINT, sb);
   printf("\033c");
   printf("      ");
   queue = shm_init(SHM_KEY_A);
@@ -106,7 +209,7 @@ void print_all() {
   printq(queue);
   shmdt(queue);
   printf("\n");
-  up(SEM_KEY, MUTEX_PRINT);
+  up( MUTEX_PRINT, sb);
 }
 
 void shm_clean(key_t key) {
@@ -141,23 +244,25 @@ void init_all() {
   init(queue_D, Q_SIZE);
   shmdt(queue_D);
 
-  sem_init(SEM_KEY, MUTEX_A, 1);
-  sem_init(SEM_KEY, MUTEX_B, 1);
-  sem_init(SEM_KEY, MUTEX_C, 1);
-  sem_init(SEM_KEY, MUTEX_D, 1);
-  sem_init(SEM_KEY, SEM_FULL_A, 0);
-  sem_init(SEM_KEY, SEM_FULL_B, 0);
-  sem_init(SEM_KEY, SEM_EMPTY_AB, 2 * Q_SIZE);
-  sem_init(SEM_KEY, SEM_EMPTY_C, Q_SIZE);
-  sem_init(SEM_KEY, SEM_EMPTY_D, Q_SIZE);
-  sem_init(SEM_KEY, SEM_FULL_CD, 0);
-  sem_init(SEM_KEY, SEM_PRIORITY_C, 0);
-  sem_init(SEM_KEY, SEM_PRIORITY_D, 0);
-  sem_init(SEM_KEY, MUTEX_PRINT, 1);
+  semid = sem_id(SEM_KEY);
+
+  sem_init(MUTEX_A, 1);
+  sem_init(MUTEX_B, 1);
+  sem_init(MUTEX_C, 1);
+  sem_init(MUTEX_D, 1);
+  sem_init(SEM_FULL_A, 0);
+  sem_init(SEM_FULL_B, 0);
+  sem_init(SEM_EMPTY_AB,2 * Q_SIZE);
+  sem_init(SEM_EMPTY_C, Q_SIZE);
+  sem_init(SEM_EMPTY_D, Q_SIZE);
+  sem_init(SEM_FULL_CD, 0);
+  sem_init(SEM_PRIORITY_C, 0);
+  sem_init(SEM_PRIORITY_D, 0);
+  sem_init(MUTEX_PRINT, 1);
 }
 // Clean up all the allocated memory from shared memory and semaphores
 void clean_up() {
-  sem_destroy_all(SEM_KEY);
+  sem_destroy_all();
 
   shm_clean(SHM_KEY_A);
   shm_clean(SHM_KEY_B);
@@ -165,129 +270,154 @@ void clean_up() {
   shm_clean(SHM_KEY_D);
 }
 
-void process_U0() {
+void* process_U0() {
   struct Queue *queue;
   int applicant_id = 0, applicant_priority, which_queue;
   srand(time(NULL));
 
-  for (;;) {
-    down(SEM_KEY, SEM_EMPTY_AB);
+  for (int i = 0; i < 100; i++) {
+    down(SEM_EMPTY_AB, sb);
     which_queue = (int)(rand()) % 2; // 2 - number of queues betwen U0 and U1
-    if (which_queue == 0 && sem_get_value(SEM_KEY, SEM_FULL_A) != Q_SIZE) {
+    if (which_queue == 0 && sem_get_value(SEM_FULL_A) != Q_SIZE) {
       applicant_priority = rand() % 2;
-      down(SEM_KEY, MUTEX_A);
+      down(MUTEX_A, sb);
       queue = shm_init(SHM_KEY_A);
       push(queue, applicant_id, applicant_priority);
       shmdt(queue);
-      up(SEM_KEY, MUTEX_A);
-      up(SEM_KEY, SEM_FULL_A);
+      up(MUTEX_A, sb);
+      up(SEM_FULL_A, sb);
       applicant_id++;
-    } else if (which_queue == 1 && sem_get_value(SEM_KEY, SEM_FULL_B) != Q_SIZE) {
+    } else if (which_queue == 1 && sem_get_value(SEM_FULL_B) != Q_SIZE) {
       applicant_priority = rand() % 2;
-      down(SEM_KEY, MUTEX_B);
+      down(MUTEX_B, sb);
       queue = shm_init(SHM_KEY_B);
       push(queue, applicant_id, applicant_priority);
       shmdt(queue);
-      up(SEM_KEY, MUTEX_B);
-      up(SEM_KEY, SEM_FULL_B);
+      up(MUTEX_B, sb);
+      up(SEM_FULL_B, sb);
       applicant_id++;
-    } else
-      up(SEM_KEY, SEM_EMPTY_AB);
-
+    } else{
+      up(SEM_EMPTY_AB, sb);
+      break;
+    }
     print_all();
+    sleep(1);
   }
+  return;
 }
 
-void process_U1_1() {
+void* process_U1_1() {
+  sleep(5);
   struct Queue *queue;
   struct Applicant applicant;
   int which_queue;
 
-  for (;;) {
-    down(SEM_KEY, SEM_FULL_A);
-    down(SEM_KEY, MUTEX_A);
+  for (int i = 0; i < 100; i++) {
+    down(SEM_FULL_A, sb);
+    down(MUTEX_A, sb);
     queue = shm_init(SHM_KEY_A);
     applicant = pop(queue);
     shmdt(queue);
-    up(SEM_KEY, MUTEX_A);
-    up(SEM_KEY, SEM_EMPTY_AB);
+    up(MUTEX_A, sb);
+    up(SEM_EMPTY_AB, sb);
 
     print_all();
-    sleep(1000);
+    sleep(2);
 
-    down(SEM_KEY, SEM_EMPTY_C);
-    down(SEM_KEY, MUTEX_C);
+    down(SEM_EMPTY_C, sb);
+    down(MUTEX_C, sb);
     queue = shm_init(SHM_KEY_C);
     push_priority(queue, applicant.id, applicant.priority);
     shmdt(queue);
     if (applicant.priority == 1)
-      up(SEM_KEY, SEM_PRIORITY_C);
-    up(SEM_KEY, MUTEX_C);
-    up(SEM_KEY, SEM_FULL_CD);
+      up(SEM_PRIORITY_C, sb);
+    up(MUTEX_C, sb);
+    up(SEM_FULL_CD, sb);
 
     print_all();
   }
 }
 
-void process_U1_2() {
+void* process_U1_2() {
+  sleep(5);
   struct Queue *queue;
   struct Applicant applicant;
 
-  for (;;) {
-    down(SEM_KEY, SEM_FULL_B);
-    down(SEM_KEY, MUTEX_B);
+  for (int i = 0; i < 100; i++) {
+    down(SEM_FULL_B, sb);
+    down(MUTEX_B, sb);
     queue = shm_init(SHM_KEY_B);
     applicant = pop(queue);
     shmdt(queue);
-    up(SEM_KEY, MUTEX_B);
-    up(SEM_KEY, SEM_EMPTY_AB);
+    up(MUTEX_B, sb);
+    up(SEM_EMPTY_AB, sb);
 
     print_all();
-    sleep(1000);
+    sleep(2);
 
-    down(SEM_KEY, SEM_EMPTY_D);
-    down(SEM_KEY, MUTEX_D);
+    down(SEM_EMPTY_D, sb);
+    down(MUTEX_D, sb);
     queue = shm_init(SHM_KEY_D);
     push_priority(queue, applicant.id, applicant.priority);
     shmdt(queue);
     if (applicant.priority == 1)
-      up(SEM_KEY, SEM_PRIORITY_D);
-    up(SEM_KEY, MUTEX_D);
-    up(SEM_KEY, SEM_FULL_CD);
+      up(SEM_PRIORITY_D, sb);
+    up(MUTEX_D, sb);
+    up(SEM_FULL_CD, sb);
 
     print_all();
   }
 }
 
-void process_U2() {
+void* process_U2() {
+  sleep(15);
   struct Queue *queue;
   struct Applicant applicant;
   int priority_num;
 
-  for (;;) {
-    down(SEM_KEY, SEM_FULL_CD);
-    if (sem_get_value(SEM_KEY, SEM_PRIORITY_C) >= sem_get_value(SEM_KEY, SEM_PRIORITY_D)
-    && sem_get_value(SEM_KEY, SEM_EMPTY_C) != Q_SIZE) {
-      down(SEM_KEY, MUTEX_C);
+  for (int i = 0; i < 100; i++) {
+    down(SEM_FULL_CD, sb);
+    if (sem_get_value(SEM_PRIORITY_C) > sem_get_value(SEM_PRIORITY_D)
+    && sem_get_value(SEM_PRIORITY_C) > 0) {
+      down(MUTEX_C, sb);
       queue = shm_init(SHM_KEY_C);
       applicant = pop(queue);
       shmdt(queue);
       if (applicant.priority == 1)
-        down(SEM_KEY, SEM_PRIORITY_C);
-      up(SEM_KEY, MUTEX_C);
-      up(SEM_KEY, SEM_EMPTY_C);
-    } else {
-      down(SEM_KEY, MUTEX_D);
+        down(SEM_PRIORITY_C, sb);
+      up(MUTEX_C, sb);
+      up(SEM_EMPTY_C, sb);
+    } else if (sem_get_value(SEM_PRIORITY_D) > sem_get_value(SEM_PRIORITY_C)
+    && sem_get_value(SEM_PRIORITY_D) > 0) {
+      down(MUTEX_D, sb);
       queue = shm_init(SHM_KEY_D);
       applicant = pop(queue);
       shmdt(queue);
       if (applicant.priority == 1)
-        down(SEM_KEY, SEM_PRIORITY_D);
-      up(SEM_KEY, MUTEX_D);
-      up(SEM_KEY, SEM_EMPTY_D);
+        down(SEM_PRIORITY_D, sb);
+      up(MUTEX_D, sb);
+      up(SEM_EMPTY_D, sb);
+    } else if (sem_get_value(SEM_EMPTY_C) > sem_get_value(SEM_EMPTY_D)) {
+      down(MUTEX_D, sb);
+      queue = shm_init(SHM_KEY_D);
+      applicant = pop(queue);
+      shmdt(queue);
+      if (applicant.priority == 1)
+        down(SEM_PRIORITY_D, sb);
+      up(MUTEX_D, sb);
+      up(SEM_EMPTY_D, sb);
+    } else {
+      down(MUTEX_C, sb);
+      queue = shm_init(SHM_KEY_C);
+      applicant = pop(queue);
+      shmdt(queue);
+      if (applicant.priority == 1)
+        down(SEM_PRIORITY_C, sb);
+      up(MUTEX_C, sb);
+      up(SEM_EMPTY_C, sb);
     }
     print_all();
-    sleep(2000);
+    sleep(2);
   }
 }
 
@@ -310,7 +440,7 @@ int run_tasks() {
     process_U1_2();
     return 1;
   }
-  
+
   pid = fork();
   if (pid == 0) {
     process_U2();
@@ -320,13 +450,27 @@ int run_tasks() {
   return 0;
 }
 
-
-int main(int argc, char const *argv[]) {
+void simulate(){
+  char c;
   init_all();
 
-  if (run_tasks())
-    return 0;
-
   clean_up();
+}
+
+
+int main(int argc, char const *argv[]) {
+  int arg;
+  printf("Podaj argument: ");
+  scanf("%d", &arg);
+
+  switch (arg) {
+    case 0: simulate(); break;
+    case 1: process_U0(); break;
+    case 2: process_U1_1(); break;
+    case 3: process_U1_2(); break;
+    case 4: process_U2(); break;
+    default: printf("Wrong argument boii\n");
+  }
+
   return 0;
 }
