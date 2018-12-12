@@ -69,8 +69,8 @@ void push_priority(struct Queue *queue, int id, int priority) {
     queue->buffor[((j + 1) % queue->size)].priority = queue->buffor[j].priority;
     j = mod_q(j - 1, queue->size);
   }
-  queue->buffor[j + 1].id = id;
-  queue->buffor[j + 1].priority = priority;
+  queue->buffor[((j + 1) % queue->size)].id = id;
+  queue->buffor[((j + 1) % queue->size)].priority = priority;
   queue->actual_size += 1;
   queue->back = (queue->back + 1) % queue->size;
   return;

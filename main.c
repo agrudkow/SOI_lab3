@@ -14,7 +14,9 @@
 #define SHM_KEY_C   10003
 #define SHM_KEY_D   10004
 #define SEM_KEY     20001
+
 #define NUM_OF_SEMS 13
+#define NUM_OF_APPLICANTS 10
 
 pthread_t U0_thread, U1_1_thread, U1_2_thread, U2_thread;
 
@@ -73,20 +75,6 @@ void test() {
 
 
   shmdt(queue_A);
-
-  //if (run_tasks())
-    //return 0;
-
-
-  pthread_create(&U0_thread, NULL, &process_U0, NULL);
-  pthread_create(&U1_1_thread, NULL, &process_U1_1, NULL);
-  pthread_create(&U1_2_thread, NULL, &process_U1_2, NULL);
-  pthread_create(&U2_thread, NULL, &process_U2, NULL);
-
-  pthread_join(U0_thread, NULL);
-  pthread_join(U1_1_thread, NULL);
-  pthread_join(U1_2_thread, NULL);
-  pthread_join(U2_thread, NULL);
   */
 }
 
@@ -262,20 +250,26 @@ void init_all() {
 }
 // Clean up all the allocated memory from shared memory and semaphores
 void clean_up() {
+
   sem_destroy_all();
 
   shm_clean(SHM_KEY_A);
   shm_clean(SHM_KEY_B);
   shm_clean(SHM_KEY_C);
   shm_clean(SHM_KEY_D);
+
+  pthread_kill(U0_thread, 9);
+  pthread_kill(U1_1_thread, 9);
+  pthread_kill(U1_2_thread, 9);
+  pthread_kill(U2_thread, 9);
 }
 
 void* process_U0() {
   struct Queue *queue;
-  int applicant_id = 0, applicant_priority, which_queue;
+  int applicant_id = 1, applicant_priority, which_queue;
   srand(time(NULL));
 
-  for (int i = 0; i < 100; i++) {
+  while (applicant_id <= NUM_OF_APPLICANTS) {
     down(SEM_EMPTY_AB, sb);
     which_queue = (int)(rand()) % 2; // 2 - number of queues betwen U0 and U1
     if (which_queue == 0 && sem_get_value(SEM_FULL_A) != Q_SIZE) {
@@ -296,14 +290,12 @@ void* process_U0() {
       up(MUTEX_B, sb);
       up(SEM_FULL_B, sb);
       applicant_id++;
-    } else{
+    } else
       up(SEM_EMPTY_AB, sb);
-      break;
-    }
+
     print_all();
     sleep(1);
   }
-  return;
 }
 
 void* process_U1_1() {
@@ -312,7 +304,7 @@ void* process_U1_1() {
   struct Applicant applicant;
   int which_queue;
 
-  for (int i = 0; i < 100; i++) {
+  for (;;) {
     down(SEM_FULL_A, sb);
     down(MUTEX_A, sb);
     queue = shm_init(SHM_KEY_A);
@@ -322,7 +314,7 @@ void* process_U1_1() {
     up(SEM_EMPTY_AB, sb);
 
     print_all();
-    sleep(2);
+    sleep(1);
 
     down(SEM_EMPTY_C, sb);
     down(MUTEX_C, sb);
@@ -343,7 +335,7 @@ void* process_U1_2() {
   struct Queue *queue;
   struct Applicant applicant;
 
-  for (int i = 0; i < 100; i++) {
+  for (;;) {
     down(SEM_FULL_B, sb);
     down(MUTEX_B, sb);
     queue = shm_init(SHM_KEY_B);
@@ -353,7 +345,7 @@ void* process_U1_2() {
     up(SEM_EMPTY_AB, sb);
 
     print_all();
-    sleep(2);
+    sleep(1);
 
     down(SEM_EMPTY_D, sb);
     down(MUTEX_D, sb);
@@ -373,7 +365,7 @@ void* process_U2() {
   sleep(15);
   struct Queue *queue;
   struct Applicant applicant;
-  int priority_num;
+  int priority_num, applicant_num = 0;
 
   for (int i = 0; i < 100; i++) {
     down(SEM_FULL_CD, sb);
@@ -387,6 +379,7 @@ void* process_U2() {
         down(SEM_PRIORITY_C, sb);
       up(MUTEX_C, sb);
       up(SEM_EMPTY_C, sb);
+      applicant_num++;
     } else if (sem_get_value(SEM_PRIORITY_D) > sem_get_value(SEM_PRIORITY_C)
     && sem_get_value(SEM_PRIORITY_D) > 0) {
       down(MUTEX_D, sb);
@@ -397,6 +390,7 @@ void* process_U2() {
         down(SEM_PRIORITY_D, sb);
       up(MUTEX_D, sb);
       up(SEM_EMPTY_D, sb);
+      applicant_num++;
     } else if (sem_get_value(SEM_EMPTY_C) > sem_get_value(SEM_EMPTY_D)) {
       down(MUTEX_D, sb);
       queue = shm_init(SHM_KEY_D);
@@ -406,6 +400,7 @@ void* process_U2() {
         down(SEM_PRIORITY_D, sb);
       up(MUTEX_D, sb);
       up(SEM_EMPTY_D, sb);
+      applicant_num++;
     } else {
       down(MUTEX_C, sb);
       queue = shm_init(SHM_KEY_C);
@@ -415,9 +410,12 @@ void* process_U2() {
         down(SEM_PRIORITY_C, sb);
       up(MUTEX_C, sb);
       up(SEM_EMPTY_C, sb);
+      applicant_num++;
     }
     print_all();
-    sleep(2);
+    sleep(1);
+    if (applicant_num == NUM_OF_APPLICANTS)
+      clean_up();
   }
 }
 
@@ -450,27 +448,22 @@ int run_tasks() {
   return 0;
 }
 
-void simulate(){
-  char c;
-  init_all();
+void simulate() {
+  pthread_create(&U0_thread, NULL, &process_U0, NULL);
+  pthread_create(&U1_1_thread, NULL, &process_U1_1, NULL);
+  pthread_create(&U1_2_thread, NULL, &process_U1_2, NULL);
+  pthread_create(&U2_thread, NULL, &process_U2, NULL);
 
-  clean_up();
+  pthread_join(U0_thread, NULL);
+  pthread_join(U1_1_thread, NULL);
+  pthread_join(U1_2_thread, NULL);
+  pthread_join(U2_thread, NULL);
 }
 
 
 int main(int argc, char const *argv[]) {
-  int arg;
-  printf("Podaj argument: ");
-  scanf("%d", &arg);
-
-  switch (arg) {
-    case 0: simulate(); break;
-    case 1: process_U0(); break;
-    case 2: process_U1_1(); break;
-    case 3: process_U1_2(); break;
-    case 4: process_U2(); break;
-    default: printf("Wrong argument boii\n");
-  }
-
+  init_all();
+  simulate();
+  clean_up();
   return 0;
 }
