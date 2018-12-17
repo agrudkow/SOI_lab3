@@ -5,7 +5,7 @@
 #define RED "\x1B[31m"
 #define GREEN "\x1B[32m"
 #define RESET "\x1B[0m"
-
+//Custom modulo function
 int mod_q (int a, int b){
   int result = a % b;
   if (result >= 0) {
@@ -14,7 +14,7 @@ int mod_q (int a, int b){
     return (b + result);
   }
 }
-
+//Print selected queue
 void printq(struct Queue *queue) {
   //printf("%d %d %d \n",  queue->front, queue->back, queue->actual_size);
   if (queue->actual_size == 0) {

@@ -3,14 +3,14 @@
 # make clean  # remove ALL binaries and objects
 
 CC = gcc                       # compiler to use
-OBJS = main.o queue.o #sem.o
+OBJS = main.o queue.o
 
 lab3: $(OBJS)
 				$(CC) -pthread -o lab3 $(OBJS)
 
-main.o: queue.h #sem.h
+main.o: queue.h
 queue.o: queue.h
-#sem.o: sem.h
+
 
 .PHONY = clean
 clean:

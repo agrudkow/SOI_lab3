@@ -8,7 +8,6 @@
 #include <sys/shm.h>
 #include <pthread.h>
 #include "queue.h"
-//#include "sem.h"
 
 #define SHM_KEY_A   10001
 #define SHM_KEY_B   10002
@@ -29,7 +28,7 @@ enum { MUTEX_A, MUTEX_B, MUTEX_C, MUTEX_D,
    SEM_EMPTY_C,SEM_EMPTY_D, SEM_FULL_CD,
    SEM_PRIORITY_C, SEM_PRIORITY_D,
    MUTEX_PRINT};
-
+//Return semaphore id
 int sem_id(key_t key) {
   int sem_id;
 
@@ -79,7 +78,7 @@ void up (int semnum, struct sembuf sem) {
     exit(1);
   }
 }
-
+//Return semaphore value
 int sem_get_value(int semnum) {
   int value;
 
@@ -92,7 +91,7 @@ int sem_get_value(int semnum) {
 
   return value;
 }
-
+//Initialize shared memory
 struct Queue* shm_init(key_t key){
   int shm_id;
   struct Queue *queue;
@@ -110,7 +109,7 @@ struct Queue* shm_init(key_t key){
 
   return queue;
 }
-
+//Prints all queues aka simlation
 void print_all() {
   struct Queue *queue;
 
@@ -151,7 +150,7 @@ void print_all() {
   printf("\n");
   up( MUTEX_PRINT, sb);
 }
-
+//Destroys shared memory
 void shm_clean(key_t key) {
   int shm_id;
   struct Queue *queue;
@@ -167,7 +166,7 @@ void shm_clean(key_t key) {
     exit(1);
   }
 }
-
+//Initialize all needed semaphores and shared memory
 void init_all() {
   struct Queue *queue_A, *queue_B, *queue_C, *queue_D;
 
@@ -321,6 +320,8 @@ void* process_U2() {
 
   for (int i = 0; i < 100; i++) {
     down(SEM_FULL_CD, sb);
+    //checks if there is more priority applicants in C queue. If that is true
+    //it takes one applicant form C queue
     if (sem_get_value(SEM_PRIORITY_C) > sem_get_value(SEM_PRIORITY_D)
     && sem_get_value(SEM_PRIORITY_C) > 0) {
       down(MUTEX_C, sb);
@@ -332,7 +333,10 @@ void* process_U2() {
       up(MUTEX_C, sb);
       up(SEM_EMPTY_C, sb);
       applicant_num++;
-    } else if (sem_get_value(SEM_PRIORITY_D) > sem_get_value(SEM_PRIORITY_C)
+    }
+    //checks if there is more priority applicants in D queue. If that is true
+    //it takes one applicant form D queue
+    else if (sem_get_value(SEM_PRIORITY_D) > sem_get_value(SEM_PRIORITY_C)
     && sem_get_value(SEM_PRIORITY_D) > 0) {
       down(MUTEX_D, sb);
       queue = shm_init(SHM_KEY_D);
@@ -343,7 +347,10 @@ void* process_U2() {
       up(MUTEX_D, sb);
       up(SEM_EMPTY_D, sb);
       applicant_num++;
-    } else if (sem_get_value(SEM_EMPTY_C) > sem_get_value(SEM_EMPTY_D)) {
+    }
+    //now when nuber of priority applicants is equal in both queues algorithm
+    //checks in which queues overall number of applicants is bigger
+    else if (sem_get_value(SEM_EMPTY_C) > sem_get_value(SEM_EMPTY_D)) {
       down(MUTEX_D, sb);
       queue = shm_init(SHM_KEY_D);
       applicant = pop(queue);
@@ -370,36 +377,7 @@ void* process_U2() {
       clean_up();
   }
 }
-
-int run_tasks() {
-  int pid;
-
-  pid = fork();
-  if (pid == 1) {
-    process_U0();
-    return 1;
-  }
-
-  pid = fork();
-  if (pid == 1) {
-    process_U1_1();
-    return 1;
-  }
-  pid = fork();
-  if (pid == 0) {
-    process_U1_2();
-    return 1;
-  }
-
-  pid = fork();
-  if (pid == 0) {
-    process_U2();
-    return 1;
-  }
-
-  return 0;
-}
-
+//Start threads
 void simulate() {
   pthread_create(&U0_thread, NULL, &process_U0, NULL);
   pthread_create(&U1_1_thread, NULL, &process_U1_1, NULL);
@@ -411,7 +389,6 @@ void simulate() {
   pthread_join(U1_2_thread, NULL);
   pthread_join(U2_thread, NULL);
 }
-
 
 int main(int argc, char const *argv[]) {
   init_all();
