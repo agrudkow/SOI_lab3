@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include "sem.h"
 
-struct sembuf sem = {0, 0, 0};
 //Get id of given semaphore
 int sem_id(key_t key) {
   int sem_id;
@@ -18,21 +17,21 @@ int sem_id(key_t key) {
   return sem_id;
 }
 //Initialize semaphore with given value
-void sem_init(int id, int semnum, union semun sem_info) {
-  if (semctl(id, semnum, SETVAL, sem_info) == -1) {
+void sem_init(int semnum, int value) {
+  if (semctl(semid, semnum, SETVAL, value) == -1) {
     perror("sem_init: semctl error\n");
     exit(1);
   }
 }
 //Destroy all semaphores from a set pointed with key
-void sem_destroy_all(int id) {
-  if (semctl(id, 0, IPC_RMID) == -1) {
+void sem_destroy_all() {
+  if (semctl(semid, 0, IPC_RMID) == -1) {
     perror("sem_destroy_all: semctl error\n");
     exit(1);
   }
 }
 //Decrease value of semaphore
-void down (int semid, int semnum, struct sembuf sem) {
+void down (int semnum, struct sembuf sem) {
   sem.sem_num = semnum;
   sem.sem_op = -1;
   sem.sem_flg = 0;
@@ -44,7 +43,7 @@ void down (int semid, int semnum, struct sembuf sem) {
   }
 }
 //Increase value of semaphore
-void up (int semid, int semnum, struct sembuf sem) {
+void up (int semnum, struct sembuf sem) {
   sem.sem_num = semnum;
   sem.sem_op = 1;
   sem.sem_flg = 0;
@@ -56,7 +55,7 @@ void up (int semid, int semnum, struct sembuf sem) {
   }
 }
 
-int sem_get_value(int semid, int semnum) {
+int sem_get_value(int semnum) {
   int value;
 
   value = semctl(semid, semnum, GETVAL);

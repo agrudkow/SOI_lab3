@@ -8,6 +8,7 @@
 #include <sys/shm.h>
 #include <pthread.h>
 #include "queue.h"
+//#include "sem.h"
 
 #define SHM_KEY_A   10001
 #define SHM_KEY_B   10002
@@ -16,7 +17,7 @@
 #define SEM_KEY     20001
 
 #define NUM_OF_SEMS 13
-#define NUM_OF_APPLICANTS 10
+#define NUM_OF_APPLICANTS 50
 
 pthread_t U0_thread, U1_1_thread, U1_2_thread, U2_thread;
 
@@ -28,55 +29,6 @@ enum { MUTEX_A, MUTEX_B, MUTEX_C, MUTEX_D,
    SEM_EMPTY_C,SEM_EMPTY_D, SEM_FULL_CD,
    SEM_PRIORITY_C, SEM_PRIORITY_D,
    MUTEX_PRINT};
-
-void test() {
-  /*
-  struct Queue *queue_A;
-  queue_A = shm_init(SHM_KEY_A);
-  printq(queue_A);
-  push_priority(queue_A, 1, 0);
-  printq(queue_A);
-//  pop(queue_A);
-  //printq(queue_A);
-  push_priority(queue_A, 2, 0);
-  printq(queue_A);
-  pop(queue_A);
-  printq(queue_A);
-  push_priority(queue_A, 3, 0);
-  printq(queue_A);
-  //pop(queue_A);
-  //printq(queue_A);
-  push_priority(queue_A, 4, 0);
-    printq(queue_A);
-  pop(queue_A);
-  printq(queue_A);
-  push_priority(queue_A, 5, 0);
-  printq(queue_A);
-  //pop(queue_A);
-  //printq(queue_A);
-  push_priority(queue_A, 6, 1);
-    printq(queue_A);
-  //pop(queue_A);
-  //printq(queue_A);
-  push_priority(queue_A, 7, 1);
-  printq(queue_A);
-  //pop(queue_A);
-  printq(queue_A);
-  push_priority(queue_A, 8, 1);
-    printq(queue_A);
-//  pop(queue_A);
-  //printq(queue_A);
-  push_priority(queue_A, 9, 1);
-  printq(queue_A);
-  //pop(queue_A);
-  //printq(queue_A);
-  push_priority(queue_A, 10, 1);
-    printq(queue_A);
-
-
-  shmdt(queue_A);
-  */
-}
 
 int sem_id(key_t key) {
   int sem_id;
@@ -294,7 +246,7 @@ void* process_U0() {
       up(SEM_EMPTY_AB, sb);
 
     print_all();
-    sleep(1);
+    //sleep(1);
   }
 }
 

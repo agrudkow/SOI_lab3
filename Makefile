@@ -10,7 +10,7 @@ lab3: $(OBJS)
 
 main.o: queue.h #sem.h
 queue.o: queue.h
-sem.o: #sem.h
+#sem.o: sem.h
 
 .PHONY = clean
 clean:
