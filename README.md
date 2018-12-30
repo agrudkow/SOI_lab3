@@ -1,5 +1,3 @@
-Wysłać koncepcję razem z kodem!!
-
 Zadanie jest podzielone na dwie zasadnicze części:
 
 Implementacja kolejki priorytetowej na potrzeby komunikacji międzyprocesowej.
